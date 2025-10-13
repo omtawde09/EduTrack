@@ -1,0 +1,32 @@
+{
+  "name": "Student",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the student"
+    },
+    "roll_number": {
+      "type": "string",
+      "description": "Student roll number"
+    },
+    "email": {
+      "type": "string",
+      "description": "Student email address"
+    },
+    "classroom_id": {
+      "type": "string",
+      "description": "ID of the classroom this student belongs to"
+    },
+    "teacher_email": {
+      "type": "string",
+      "description": "Email of the teacher who created this student record"
+    }
+  },
+  "required": [
+    "name",
+    "roll_number",
+    "classroom_id",
+    "teacher_email"
+  ]
+}

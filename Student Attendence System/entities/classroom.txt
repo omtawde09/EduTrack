@@ -1,0 +1,27 @@
+{
+  "name": "Classroom",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the classroom (e.g., Class 10-A)"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subject taught in this classroom"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of the classroom"
+    },
+    "teacher_email": {
+      "type": "string",
+      "description": "Email of the teacher who created this classroom"
+    }
+  },
+  "required": [
+    "name",
+    "subject",
+    "teacher_email"
+  ]
+}

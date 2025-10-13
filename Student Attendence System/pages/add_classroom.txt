@@ -1,0 +1,208 @@
+import React, { useState, useEffect } from "react";
+import { User } from "@/entities/User";
+import { Classroom } from "@/entities/Classroom";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, BookOpen, Save, LogIn } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export default function AddClassroomPage() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    subject: "",
+    description: ""
+  });
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const currentUser = await User.me();
+      setUser(currentUser);
+    } catch (error) {
+      setUser(null);
+    }
+    setIsLoading(false);
+  };
+
+  const handleLogin = async () => {
+    try {
+      await User.loginWithRedirect(window.location.origin + createPageUrl("AddClassroom"));
+    } catch (error) {
+      console.error("Login error:", error);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setError("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim() || !formData.subject.trim()) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      const newClassroom = await Classroom.create({
+        name: formData.name.trim(),
+        subject: formData.subject.trim(),
+        description: formData.description.trim(),
+        teacher_email: user.email
+      });
+
+      // Redirect to add students page
+      localStorage.setItem('selectedClassroom', JSON.stringify(newClassroom));
+      navigate(createPageUrl("ManageStudents"));
+    } catch (error) {
+      setError("Failed to create classroom. Please try again.");
+    }
+    
+    setIsSaving(false);
+  };
+
+  const goBack = () => {
+    navigate(createPageUrl("Dashboard"));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-16">
+        <h1 className="text-2xl font-bold text-slate-800 mb-4">Authentication Required</h1>
+        <p className="text-slate-600 mb-8">Please log in to create classrooms.</p>
+        <Button
+          onClick={handleLogin}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        >
+          <LogIn className="w-5 h-5 mr-2" />
+          Login to Continue
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          onClick={goBack}
+          className="flex items-center text-slate-600 hover:text-slate-800"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
+      </div>
+
+      <div className="text-center">
+        <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <BookOpen className="w-8 h-8 text-white" />
+        </div>
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">Add New Classroom</h1>
+        <p className="text-slate-600">Create a classroom to organize your students and attendance</p>
+      </div>
+
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-center text-xl text-slate-700">Classroom Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-slate-700 font-medium">
+                Classroom Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                placeholder="e.g., Class 10-A, Mathematics Class"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="subject" className="text-slate-700 font-medium">
+                Subject <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="subject"
+                placeholder="e.g., Mathematics, Physics, Chemistry"
+                value={formData.subject}
+                onChange={(e) => handleInputChange('subject', e.target.value)}
+                className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-slate-700 font-medium">
+                Description (Optional)
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Additional details about this classroom..."
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                className="h-24 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              disabled={isSaving}
+              className="w-full h-12 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-medium shadow-lg transition-all duration-200"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Creating Classroom...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Create Classroom & Add Students
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

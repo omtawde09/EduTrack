@@ -1,0 +1,173 @@
+import React, { useState, useEffect } from "react";
+import { User } from "@/entities/User";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar, ArrowRight, ArrowLeft, LogIn, Clock } from "lucide-react";
+import { format } from "date-fns";
+
+export default function DateSelectionPage() {
+  const navigate = useNavigate();
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedTime, setSelectedTime] = useState(format(new Date(), 'HH:mm'));
+  const [classroom, setClassroom] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthAndData();
+  }, []);
+
+  const checkAuthAndData = async () => {
+    try {
+      const currentUser = await User.me();
+      setUser(currentUser);
+      
+      const selectedClassroom = localStorage.getItem('selectedClassroom');
+      if (!selectedClassroom) {
+        navigate(createPageUrl("Dashboard"));
+        return;
+      }
+      
+      setClassroom(JSON.parse(selectedClassroom));
+    } catch (error) {
+      setUser(null);
+    }
+    setIsLoading(false);
+  };
+
+  const handleLogin = async () => {
+    try {
+      await User.loginWithRedirect(window.location.origin + window.location.pathname + window.location.search);
+    } catch (error) {
+      console.error("Login error:", error);
+    }
+  };
+
+  const handleContinue = () => {
+    if (!selectedDate || !selectedTime) return;
+    
+    localStorage.setItem('selectedDate', selectedDate);
+    localStorage.setItem('selectedTime', selectedTime);
+    navigate(createPageUrl("StudentList"));
+  };
+
+  const goBack = () => {
+    navigate(createPageUrl("Dashboard"));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-16">
+        <h1 className="text-2xl font-bold text-slate-800 mb-4">Authentication Required</h1>
+        <p className="text-slate-600 mb-8">Please log in to continue with attendance marking.</p>
+        <Button
+          onClick={handleLogin}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        >
+          <LogIn className="w-5 h-5 mr-2" />
+          Login to Continue
+        </Button>
+      </div>
+    );
+  }
+
+  if (!classroom) return null;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          onClick={goBack}
+          className="flex items-center text-slate-600 hover:text-slate-800"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
+      </div>
+
+      <div className="text-center">
+        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Calendar className="w-8 h-8 text-white" />
+        </div>
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">Select Date & Time</h1>
+        <p className="text-slate-600">Choose when to mark attendance</p>
+      </div>
+
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-center">
+            <div className="text-xl text-slate-700 mb-2">{classroom.name}</div>
+            <div className="text-sm text-slate-500 font-normal">{classroom.subject} • {classroom.studentCount} students</div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <Label htmlFor="date" className="text-slate-700 font-medium text-base">Attendance Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                <Input
+                  id="date"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="pl-12 h-14 text-lg border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                  max={format(new Date(), 'yyyy-MM-dd')}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="time" className="text-slate-700 font-medium text-base">Attendance Time</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                <Input
+                  id="time"
+                  type="time"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="pl-12 h-14 text-lg border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h3 className="font-medium text-blue-800 mb-2">Selected Information:</h3>
+            <div className="space-y-1 text-sm text-blue-700">
+              <p><strong>Class:</strong> {classroom.name}</p>
+              <p><strong>Subject:</strong> {classroom.subject}</p>
+              <p><strong>Date:</strong> {selectedDate ? format(new Date(selectedDate), 'EEEE, MMMM d, yyyy') : 'Not selected'}</p>
+              <p><strong>Time:</strong> {selectedTime || 'Not selected'}</p>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleContinue}
+            disabled={!selectedDate || !selectedTime}
+            className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg transition-all duration-200"
+          >
+            Continue to Student List
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
